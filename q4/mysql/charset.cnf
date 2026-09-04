@@ -1,0 +1,14 @@
+# 컨테이너에는 LANG 이 비어 있어서 mysql 클라이언트가 latin1 로 접속한다.
+# 그 상태로 init.sql 을 실행하면 한글이 이중 인코딩되어 저장된다.
+# (김 = EA B9 80 -> latin1 로 오독 -> "ê¹€" -> utf8mb4 로 재인코딩 -> C3 AA C2 B9 E2 82 AC)
+# 클라이언트/서버 모두 utf8mb4 로 고정한다.
+
+[client]
+default-character-set = utf8mb4
+
+[mysql]
+default-character-set = utf8mb4
+
+[mysqld]
+character-set-server = utf8mb4
+collation-server     = utf8mb4_0900_ai_ci

@@ -1,0 +1,91 @@
+# EKS 계층 - fastAPI 파드 (성적 등록 API)
+#
+# 요구사항
+#   - 데이터베이스는 프록시를 이용한다
+#   - 로그파일은 각 워커노드에 기록한다   -> hostPath 볼륨
+#   - 최소 1 / 유지 1 / 최대 2            -> replicas 1 + HPA(min 1, max 2)
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: std15-test-score-api
+  namespace: std15-test
+  labels: { app: std15-test-score-api }
+spec:
+  replicas: 1                       # 유지 1
+  selector:
+    matchLabels: { app: std15-test-score-api }
+  template:
+    metadata:
+      labels: { app: std15-test-score-api }
+    spec:
+      containers:
+        - name: fastapi
+          image: ${ECR_REGISTRY}/std15-test-fastapi:score
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DB_HOST     # RDS Proxy 엔드포인트
+              value: ${RDS_PROXY_ENDPOINT}
+            - name: DB_NAME
+              value: testdb
+            - name: LOG_DIR
+              value: /var/log/app
+            # 자격증명은 Secret 에서 주입 (ESO 가 Secrets Manager 에서 동기화)
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef: { name: std15-test-db-secret, key: username }
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef: { name: std15-test-db-secret, key: password }
+          volumeMounts:
+            - name: applog
+              mountPath: /var/log/app
+          readinessProbe:
+            httpGet: { path: /health, port: 8000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 8000 }
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }   # HPA 가 requests 기준으로 계산한다
+            limits:   { cpu: 500m, memory: 512Mi }
+      volumes:
+        # 워커노드의 실제 디렉터리. 파드가 죽어도 로그가 노드에 남는다.
+        - name: applog
+          hostPath:
+            path: /var/log/std15-test/fastapi
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: std15-test-score-api
+  namespace: std15-test
+spec:
+  type: ClusterIP                   # 외부 노출 안 함. nginx 만 접근한다.
+  selector: { app: std15-test-score-api }
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: std15-test-score-api
+  namespace: std15-test
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: std15-test-score-api
+  minReplicas: 1                    # 최소 1
+  maxReplicas: 2                    # 최대 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }

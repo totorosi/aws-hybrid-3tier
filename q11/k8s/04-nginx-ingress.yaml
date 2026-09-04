@@ -1,0 +1,113 @@
+# EKS 계층 - nginx 파드 + Ingress(ALB)
+#
+# 외부 노출은 여기 하나뿐이다. fastAPI 는 ClusterIP 라 nginx 를 통해서만 닿는다.
+# Ingress 를 만들면 AWS Load Balancer Controller 가 ALB 를 자동 생성한다.
+# 이때 퍼블릭 서브넷의 kubernetes.io/role/elb=1 태그(1번에서 부착)를 보고 자리를 고른다.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: std15-test-score-web
+  namespace: std15-test
+  labels: { app: std15-test-score-web }
+spec:
+  replicas: 1                       # 유지 1
+  selector:
+    matchLabels: { app: std15-test-score-web }
+  template:
+    metadata:
+      labels: { app: std15-test-score-web }
+    spec:
+      containers:
+        - name: nginx
+          image: ${ECR_REGISTRY}/std15-test-nginx:score
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: applog
+              mountPath: /var/log/app
+          readinessProbe:
+            httpGet: { path: /healthz, port: 80 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: 80 }
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits:   { cpu: 300m, memory: 256Mi }
+      volumes:
+        - name: applog
+          hostPath:
+            path: /var/log/std15-test/nginx
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: std15-test-score-web
+  namespace: std15-test
+spec:
+  # ALB 의 target-type 을 ip 로 쓰므로 ClusterIP 로 충분하다.
+  type: ClusterIP
+  selector: { app: std15-test-score-web }
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: std15-test-score-web
+  namespace: std15-test
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: std15-test-score-web
+  minReplicas: 1                    # 최소 1
+  maxReplicas: 2                    # 최대 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: std15-test-score
+  namespace: std15-test
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: ${ACM_CERTIFICATE_ARN}
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    alb.ingress.kubernetes.io/load-balancer-name: std15-test-eks-alb
+    alb.ingress.kubernetes.io/tags: Name=std15-test-eks-alb
+    # 기존 프론트 HTML 의 성적등록 카드는 /score 를 호출하는데,
+    # 공개 경로 규격은 /test 다. 프론트 파일을 수정하지 않고
+    # /score 를 /test 로 302 리다이렉트해 주소를 규격에 맞춘다.
+    alb.ingress.kubernetes.io/actions.score-redirect: >
+      {"type":"redirect","redirectConfig":{"Host":"test.totorosi.cloud","Path":"/test","Port":"443","Protocol":"HTTPS","StatusCode":"HTTP_302"}}
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          # Exact 라 /score 만 걸린다. /score/list 등 API 는 아래 / 규칙으로 간다.
+          - path: /score
+            pathType: Exact
+            backend:
+              service:
+                name: score-redirect
+                port: { name: use-annotation }
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: std15-test-score-web
+                port: { number: 80 }

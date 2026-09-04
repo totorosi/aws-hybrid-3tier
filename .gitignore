@@ -1,0 +1,24 @@
+# 실제 값이 담긴 환경 파일
+.env
+.env.*
+!.env.example
+
+# 자격증명 · 키
+*.pem
+*.key
+*.p12
+credentials
+kubeconfig*
+
+# Terraform (이 저장소 범위 밖)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# OS
+.DS_Store
+__MACOSX/
+Thumbs.db
+desktop.ini
