@@ -74,7 +74,7 @@ flowchart TB
 
 **`lambda/lambda-student.py`** — pymysql이 RDS Proxy의 `caching_sha2_password` 클라이언트 인증을 통과하지 못해 `1045 Access denied` 가 납니다. 프록시의 `ClientPasswordAuthType` 만 `MYSQL_NATIVE_PASSWORD` 로 내리면 클라이언트↔프록시 구간만 바뀌고 프록시↔DB는 그대로라 DB 측 보안 수준은 유지됩니다. TLS 옵션이 `ssl={"ssl":{}}` 가 아니라 `ssl_ca` 여야 한다는 점도 주석에 있습니다 — 전자는 **오류 없이 무시되어 평문으로 접속**됩니다.
 
-### 자격증명 처리 — 계층마다 다릅니다
+### 자격증명 처리
 
 | 계층 | 방식 | 저장 위치 |
 |---|---|---|
