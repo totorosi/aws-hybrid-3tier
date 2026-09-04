@@ -34,7 +34,7 @@ flowchart TB
 
 **S3 웹사이트 엔드포인트는 HTTPS를 지원하지 않습니다.** 인덱스 문서를 쓰려면 웹사이트 엔드포인트여야 하고, 그러면 HTTPS를 잃습니다. API Gateway를 앞단에 두어 HTTPS를 씌우면서 경로별 분배까지 함께 해결했습니다.
 
-도식에서 진입점이 세 개로 보이는 이유입니다.
+도식에는 진입점이 세 개로 보입니다. 사용자가 쓰는 주소는 하나지만, 단독 검증용 경로와 순수 S3 요구사항용 주소를 함께 남겼기 때문입니다.
 
 - **`test.totorosi.cloud` (API Gateway)** — 사용자가 쓰는 주소. 전 구간 HTTPS
 - **`app.totorosi.cloud` (ALB 직결)** — ALB의 HTTPS 리스너와 인증서를 API Gateway와 분리해 단독으로 검증하려고 둔 경로
@@ -66,7 +66,7 @@ flowchart TB
 
 **`ec2/nginx/default.conf` · `eks-app/nginx/default.conf`** — fastAPI를 외부에 열지 않고 nginx 리버스 프록시로만 접근시킵니다. 컨테이너는 80 하나만 게시합니다. 3306·8000까지 열면 컨테이너 MySQL이 그대로 인터넷에 노출됩니다.
 
-**`eks-app/k8s/02-external-secret.yaml`** — EKS 계층은 DB 자격증명을 YAML에 적지 않습니다. External Secrets Operator가 Secrets Manager에서 읽어 쿠버네티스 Secret으로 동기화하고, 인증은 IRSA라 액세스 키가 클러스터에 저장되지 않습니다. EC2 계층은 여기까지 가지 않고 `.env` 로만 분리했습니다 — 아래 「자격증명 처리」 참조.
+**`eks-app/k8s/02-external-secret.yaml`** — EKS 계층은 DB 자격증명을 YAML에 적지 않습니다. 자세한 내용은 아래 「자격증명 처리」 를 보세요.
 
 **`eks-app/k8s/04-nginx-ingress.yaml`** — 노드가 프라이빗 서브넷에 있어 NodePort로는 외부에서 닿을 수 없습니다. Ingress(ALB)로 노출하고 `target-type: ip` 로 파드에 직접 라우팅합니다. 파드 IP는 계속 바뀌므로 등록·해제를 쿠버네티스가 맡아야 합니다.
 
@@ -100,7 +100,7 @@ ASG 헬스체크를 `ELB` 로 두어 "컨테이너가 죽으면 인스턴스를 
   Target.ResponseCodeMismatch  codes: [502]  ->  unhealthy
 ```
 
-두 관측자가 서로 다른 코드를 봅니다. 상태 검사는 nginx가 즉시 돌려준 `502` 를 기록했고, ALB를 통과한 curl 은 게이트웨이 타임아웃인 `504` 를 받았습니다. **어느 쪽이든 200이 아니므로 교체가 트리거됩니다** — 이게 바꾸기 전에는 일어나지 않던 일입니다.
+두 값이 다릅니다. 관측 시점과 경유 구간이 달랐던 것으로 보이는데, 리소스를 정리한 뒤라 재확인하지 못했습니다. 확실한 것은 **둘 다 200이 아니라는 점**입니다 — 바꾸기 전에는 같은 상황에서 이 경로가 200을 돌려줬습니다.
 
 검사 경로는 [`ec2/nginx/default.conf`](ec2/nginx/default.conf) 의 `/loadlist/` 프록시 규칙과 맞물립니다. 감시 체계는 **실제로 실패시켜 봐야** 검증됩니다.
 
