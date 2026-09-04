@@ -58,6 +58,20 @@ q11/  fastapi/  main.py  Dockerfile  requirements.txt
 
 ---
 
+## 구성 증빙
+
+리소스가 이미 내려갔으므로, 운영 중이던 시점의 콘솔 화면을 함께 둡니다. **[`docs/screenshots/`](docs/screenshots/)** 에 12장과 각 화면에서 무엇을 보면 되는지, 어느 설정 파일과 대응하는지 정리해 두었습니다.
+
+| | |
+|---|---|
+| [![서브넷 9개](docs/screenshots/subnets.png)](docs/screenshots/subnets.png) | **서브넷 9개** — 3AZ × 3계층. 퍼블릭 3개만 「퍼블릭 IPv4 자동 할당 = 예」 |
+| [![db-sg 인바운드](docs/screenshots/security-group-db-inbound.png)](docs/screenshots/security-group-db-inbound.png) | **db-sg 인바운드 5개** — 전부 보안 그룹 참조, 마지막 줄이 자기 자신 참조 |
+| [![대상 그룹 2개](docs/screenshots/target-groups.png)](docs/screenshots/target-groups.png) | **대상 그룹 2개** — `IP`(파드) 와 `인스턴스`(EC2). ALB가 2개인 이유 |
+
+계정 ID와 IAM 사용자 이름은 잘라내거나 가렸습니다. 리소스 ID는 설정 파일과 대조할 수 있도록 남겼습니다.
+
+---
+
 ## 코드에서 봐 주셨으면 하는 것
 
 **`q4/nginx/default.conf` · `q11/nginx/default.conf`** — fastAPI를 외부에 열지 않고 nginx 리버스 프록시로만 접근시킵니다. 컨테이너는 80 하나만 게시합니다. 3306·8000까지 열면 DB가 인터넷에 노출됩니다.
