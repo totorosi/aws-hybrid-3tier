@@ -4,6 +4,8 @@
 
 `sa-east-1` · 2일
 
+**[→ 설계 문서](https://hexagonal-reptile-b60.notion.site/AWS-3-Tier-HTTPS-S3-EC2-EKS-Lambda-3d0ede3bc1c381c898edee908c301754)** — 왜 이 구조인지, 막혔던 지점을 어떻게 뚫었는지, 프로덕션이라면 무엇을 바꿔야 하는지
+
 > 리소스는 정리되어 내려간 상태입니다. 당시 배포했던 설정 파일 원본이며, 민감값만 환경변수로 분리했습니다.
 
 ---
