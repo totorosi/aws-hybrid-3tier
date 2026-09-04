@@ -19,6 +19,20 @@
 | [`api-gateway-routes-1.png`](api-gateway-routes-1.png) | 사이트 진입 경로. `/docker` 아래 `/{proxy+}` 가 상대경로 링크를 받아내는 캐치올 | — |
 | [`api-gateway-routes-2.png`](api-gateway-routes-2.png) | API 경로. `/student/list`→Lambda, `/loadlist/{proxy+}`→EC2 ALB, `/test`·`/score`→EKS ALB | [`q11/k8s/04-nginx-ingress.yaml`](../../q11/k8s/04-nginx-ingress.yaml) |
 
+## 서비스 화면
+
+경로마다 다른 백엔드가 응답합니다. 주소는 `test.totorosi.cloud` 하나뿐입니다.
+
+| 화면 | 경로 | 백엔드 |
+|---|---|---|
+| [`site-home.png`](site-home.png) | `/` | ALB → ASG 인스턴스 → nginx 컨테이너. **「DB 데이터 가져오기」** 를 누르면 nginx 가 fastAPI 로 리버스 프록시해 컨테이너 MySQL 을 조회한다 |
+| [`site-company.png`](site-company.png) | `/company` | S3 정적 웹사이트. 헤더 배지가 정적 호스팅이라는 점과 버킷명을 표시한다 |
+| [`site-docker.png`](site-docker.png) | `/docker` | S3 정적 웹사이트. 같은 버킷에 6개 페이지, 링크가 상대경로라 캐치올 라우트로 받는다 |
+| [`site-student.png`](site-student.png) | `/student/list` | Lambda → RDS Proxy → RDS |
+| [`site-score.png`](site-score.png) | `/test` | EKS 파드(nginx + fastAPI) → RDS Proxy → RDS |
+
+표의 데이터는 전부 가상입니다.
+
 ## 보안 그룹 자기 참조
 
 `security-group-db-inbound.png` 의 마지막 줄이 이 프로젝트에서 두 번 발목을 잡은 부분입니다.

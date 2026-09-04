@@ -56,7 +56,15 @@ flowchart TB
 
 ## 구성 증빙
 
-운영 중이던 시점의 콘솔 화면입니다. 전체 12장과 각 화면이 어느 설정 파일에 대응하는지는 **[`docs/screenshots/`](docs/screenshots/)** 에 있습니다.
+운영 중이던 시점의 화면입니다. 콘솔 12장 + 서비스 5장 전체와 각 화면이 어느 설정 파일에 대응하는지는 **[`docs/screenshots/`](docs/screenshots/)** 에 있습니다.
+
+**서비스** — 주소는 `test.totorosi.cloud` 하나이고 경로마다 다른 백엔드가 응답합니다.
+
+| `/` → EC2 | `/docker` → S3 | `/test` → EKS |
+|---|---|---|
+| [![시작페이지](docs/screenshots/site-home.png)](docs/screenshots/site-home.png) | [![도커소개](docs/screenshots/site-docker.png)](docs/screenshots/site-docker.png) | [![성적등록](docs/screenshots/site-score.png)](docs/screenshots/site-score.png) |
+
+**인프라**
 
 | | |
 |---|---|
