@@ -83,6 +83,37 @@ flowchart TB
 
 **EC2 계층은 EKS만큼 하지 못했습니다.** 컨테이너 MySQL이 `MYSQL_PASSWORD` 환경변수를 요구하고, 제공된 `main.py` 가 접속 정보를 파일 상수로 갖고 있어서입니다. 그래서 `3306` 을 열지 않는 것이 더 중요해졌습니다.
 
+### 파드 수 상한에 부딪혀 자리를 만든 일
+
+애드온(ALB Controller · External Secrets)을 설치한 뒤 앱 파드가 **5분간 `Pending`** 에서 움직이지 않았습니다.
+
+```
+Warning FailedScheduling: 0/1 nodes are available: 1 Too many pods
+
+CPU    28% 사용   <- 여유 있음
+메모리 37% 사용   <- 여유 있음
+파드   11개       <- 이게 한계
+```
+
+**자원이 부족한 게 아니었습니다.** VPC CNI 는 파드마다 VPC IP 를 하나씩 붙이므로, 인스턴스가 가질 수 있는 IP 수가 파드 수 상한이 됩니다.
+
+```
+t3.small : ENI 3개 x (ENI당 IP 4개 - 1) + 2 = 11개
+```
+
+노드 유형은 요구사항이 `t3.small` 로 지정해 키울 수 없었습니다. 그래서 **11개를 어떻게 쓰는지**를 봤습니다.
+
+```
+aws-node 1 · kube-proxy 1 · coredns 2 · metrics-server 2
+ALB Controller 2 · External Secrets 3          합 11
+```
+
+**ALB Controller 를 1개로 줄였습니다.** 리더 선출 방식이라 복제본이 2개일 필요가 없고, 그 한 자리로 앱 파드가 떴습니다.
+
+`ENABLE_PREFIX_DELEGATION=true` 도 켜 봤지만 **효과가 없었습니다.** `max-pods` 는 노드 부팅 시점에 확정되므로 이미 떠 있던 노드에는 적용되지 않습니다.
+
+**인스턴스 유형이 고정된 제약에서는 남은 자원을 재배치하는 것이 유일한 수단이었습니다.** 자원 사용률만 보면 여유가 있어서, 지표를 잘못 보면 원인을 못 찾는 종류의 문제였습니다.
+
 ### 장애를 감지하지 못하던 헬스체크
 
 ASG 헬스체크를 `ELB` 로 두어 "컨테이너가 죽으면 인스턴스를 교체"하도록 구성했는데, 검사 경로가 `/` 였습니다. `/` 는 **nginx가 돌려주는 정적 파일**이라 fastAPI나 MySQL이 죽어도 nginx만 살아 있으면 계속 200을 반환합니다. 타겟이 영원히 healthy로 남는 구조였습니다.

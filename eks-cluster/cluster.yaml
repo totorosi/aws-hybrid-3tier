@@ -55,6 +55,12 @@ iam:
 # ── 워커노드 ────────────────────────────────────────────────
 managedNodeGroups:
   - name: ng-1
+    # 이 유형이 성능이 아니라 '노드에 뜰 수 있는 파드 수' 를 정한다.
+    # VPC CNI 는 파드마다 VPC IP 를 하나씩 붙이므로 인스턴스가 가질 수 있는
+    # IP 수가 그대로 상한이 된다.
+    #   t3.small : ENI 3개 x (ENI당 IP 4개 - 1) + 2 = 11개
+    # 시스템 파드가 이 11개를 거의 다 쓴다. 애드온을 얹으면 앱 파드가
+    # Pending 에 걸린다 (README 「파드 수 상한」 참조).
     instanceType: t3.small
     amiFamily: AmazonLinux2023
     minSize: 1
