@@ -60,6 +60,8 @@ flowchart TB
 
 코드가 없는 부분은 **[`docs/screenshots/`](docs/screenshots/) 의 콘솔 화면이 그 자리를 대신합니다.**
 
+같은 계층(VPC · 서브넷 · NAT · 보안 그룹 · RDS · ALB)을 **Terraform 으로 옮긴 것은 별도 저장소**에 있습니다 — **[aws-terraform-vpc-rds-alb](https://github.com/totorosi/aws-terraform-vpc-rds-alb)**. 아키텍처가 같지 않으므로(EKS·API Gateway·Lambda 없음, 대신 내부 ALB) 한 저장소로 합치지 않았습니다.
+
 ---
 
 ## 설계 판단
