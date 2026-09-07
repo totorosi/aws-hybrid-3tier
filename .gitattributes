@@ -1,0 +1,8 @@
+# GitHub Linguist 는 YAML 을 "데이터" 로 분류해 언어 집계에서 제외한다.
+# 이 저장소는 쿠버네티스 매니페스트와 eksctl 설정이 본체이므로 집계에 포함시킨다.
+# 이 설정이 없으면 fastAPI·Lambda 의 .py 두 개가 대표 언어로 잡힌다.
+*.yaml linguist-detectable=true
+*.yml  linguist-detectable=true
+
+# 문서와 캡처는 언어 집계에서 뺀다
+docs/** linguist-documentation=true
